@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.5.57">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="dcterms.date" content="2026-10-30">
+
+<title>Blog11: The Transmission of Monetary Policy: A Bayesian SVAR Approach</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+</style>
+
+
+<script src="WEEK11_files/libs/clipboard/clipboard.min.js"></script>
+<script src="WEEK11_files/libs/quarto-html/quarto.js"></script>
+<script src="WEEK11_files/libs/quarto-html/popper.min.js"></script>
+<script src="WEEK11_files/libs/quarto-html/tippy.umd.min.js"></script>
+<script src="WEEK11_files/libs/quarto-html/anchor.min.js"></script>
+<link href="WEEK11_files/libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="WEEK11_files/libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="WEEK11_files/libs/bootstrap/bootstrap.min.js"></script>
+<link href="WEEK11_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="WEEK11_files/libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
+
+  <script src="https://cdnjs.cloudflare.com/polyfill/v3/polyfill.min.js?features=es6"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
+
+<script type="text/javascript">
+const typesetMath = (el) => {
+  if (window.MathJax) {
+    // MathJax Typeset
+    window.MathJax.typeset([el]);
+  } else if (window.katex) {
+    // KaTeX Render
+    var mathElements = el.getElementsByClassName("math");
+    var macros = [];
+    for (var i = 0; i < mathElements.length; i++) {
+      var texText = mathElements[i].firstChild;
+      if (mathElements[i].tagName == "SPAN") {
+        window.katex.render(texText.data, mathElements[i], {
+          displayMode: mathElements[i].classList.contains('display'),
+          throwOnError: false,
+          macros: macros,
+          fleqn: false
+        });
+      }
+    }
+  }
+}
+window.Quarto = {
+  typesetMath
+};
+</script>
+
+</head>
+
+<body class="fullcontent">
+
+<div id="quarto-content" class="page-columns page-rows-contents page-layout-article">
+
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">Blog11: The Transmission of Monetary Policy: A Bayesian SVAR Approach</h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    
+    <div>
+    <div class="quarto-title-meta-heading">Published</div>
+    <div class="quarto-title-meta-contents">
+      <p class="date">October 30, 2026</p>
+    </div>
+  </div>
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<section id="introduction" class="level2">
+<h2 class="anchored" data-anchor-id="introduction">Introduction</h2>
+<p>When the Federal Reserve raises interest rates, how quickly does the real economy slow down? Does inflation respond immediately, or with a lag? These questions are central to monetary policy, yet answering them requires more than a simple regression—it requires identifying <strong>exogenous monetary policy shocks</strong> that are not contaminated by the central bank’s response to economic conditions.</p>
+<p>This analysis estimates a <strong>Bayesian Structural Vector Autoregression (SVAR)</strong> using monthly U.S. macro data from 1980 to 2019. I use Markov Chain Monte Carlo (MCMC) to draw from the posterior distribution of the model parameters, and I trace how a contractionary monetary policy shock propagates through industrial production, inflation, and long-term interest rates over 24 months.</p>
+<p>The headline result: <strong>a monetary tightening has a real and persistent effect on economic activity</strong>, with industrial production declining after about 6 months, and a delayed decline in inflation that is consistent with sticky prices.</p>
+</section>
+<section id="how-i-measured-it" class="level2">
+<h2 class="anchored" data-anchor-id="how-i-measured-it">How I Measured It</h2>
+<p>I use the Federal Reserve’s <strong>FRED-MD</strong> database. To achieve stationarity, I apply the following transformations: - <code>INDPRO</code> (Industrial Production) and <code>CPIAUCSL</code> (CPI): first differences of the natural logarithm (i.e., monthly growth rates). - <code>FEDFUNDS</code> (Federal Funds Rate) and <code>GS10</code> (10-Year Treasury Yield): levels (in percentage points).</p>
+<p>The VAR contains four variables, ordered from most exogenous to most endogenous: 1. <strong>INDPRO</strong> — real economic activity. 2. <strong>CPIAUCSL</strong> — price level. 3. <strong>FEDFUNDS</strong> — the monetary policy instrument. 4. <strong>GS10</strong> — long-term financial conditions.</p>
+<p>The sample runs from January 1980 to December 2019. I exclude the post-2020 period to avoid pandemic distortions. I am aware that the zero lower bound (ZLB) was binding during 2009–2015; I retain this period but flag it as a limitation.</p>
+</section>
+<section id="why-a-reduced-form-var-cannot-identify-shocks" class="level2">
+<h2 class="anchored" data-anchor-id="why-a-reduced-form-var-cannot-identify-shocks">Why a Reduced-Form VAR Cannot Identify Shocks</h2>
+<p>A reduced-form VAR estimates</p>
+<p><span class="math display">\[
+Y_t = A_1 Y_{t-1} + \cdots + A_p Y_{t-p} + e_t,
+\]</span></p>
+<p>where the residuals <span class="math inline">\(e_t\)</span> are <strong>composite shocks</strong>: they mix monetary policy shocks, demand shocks, supply shocks, and everything else. The covariance matrix <span class="math inline">\(\Sigma = E[e_t e_t']\)</span> tells us how these residuals covary, but it cannot tell us which part of the residual is the <em>structural</em> monetary policy shock.</p>
+<p>Formally, structural shocks <span class="math inline">\(u_t\)</span> relate to reduced-form residuals via <span class="math inline">\(e_t = B u_t\)</span>. From <span class="math inline">\(\Sigma = B B'\)</span>, we have <span class="math inline">\(N(N+1)/2\)</span> free parameters in <span class="math inline">\(\Sigma\)</span> but <span class="math inline">\(N^2\)</span> parameters in (B). With four variables, () has 10 parameters and (B) has 16. <strong>We need six additional restrictions</strong> to identify (B). Without them, any rotation of (B) fits the data equally well, and the impulse responses are not unique.</p>
+</section>
+<section id="identification-recursive-restrictions" class="level2">
+<h2 class="anchored" data-anchor-id="identification-recursive-restrictions">Identification: Recursive Restrictions</h2>
+<p>I impose <strong>Cholesky recursive restrictions</strong> (Sims, 1980). This assumes a lower-triangular contemporaneous impact matrix (B):</p>
+<ul>
+<li><strong>Industrial production and inflation</strong> do not respond contemporaneously to a monetary policy shock within the same month.</li>
+<li><strong>The federal funds rate</strong> can respond contemporaneously to output and inflation.</li>
+<li><strong>The 10-year yield</strong> responds to all three variables contemporaneously.</li>
+</ul>
+<p>The ordering <span class="math inline">\([\text{INDPRO}, \text{CPIAUCSL}, \text{FEDFUNDS}, \text{GS10}]\)</span> delivers the six zero restrictions needed to identify (B).</p>
+<p><strong>An important caveat:</strong> This identification scheme imposes a structural zero on the impact of the monetary shock on CPI at horizon 0. Any observation of a zero response at month 0 is a <em>by-product of the assumption</em>, not an empirical finding. To investigate whether prices respond immediately without imposing this restriction, one would need sign restrictions or external instruments.</p>
+</section>
+<section id="the-bayesian-framework" class="level2">
+<h2 class="anchored" data-anchor-id="the-bayesian-framework">The Bayesian Framework</h2>
+<p>I estimate the SVAR using a conjugate <strong>normal-inverse-Wishart</strong> prior: - <strong>Prior on coefficients</strong>: A Minnesota prior shrinks the VAR coefficients toward a random-walk benchmark (first-lag coefficient of 1, all others 0), preventing overfitting with 480 observations and 100 coefficients. - <strong>Prior on covariance</strong>: An inverse-Wishart prior on (). - <strong>Likelihood</strong>: Given the coefficients and covariance, residuals are multivariate normal: (e_t N(0, )). - <strong>Posterior</strong>: Bayes’ rule combines the prior and likelihood to form <span class="math inline">\(p(A, \Sigma \mid Y) \propto p(Y \mid A, \Sigma) p(A) p(\Sigma)\)</span>.</p>
+</section>
+<section id="why-mcmc" class="level2">
+<h2 class="anchored" data-anchor-id="why-mcmc">Why MCMC?</h2>
+<p>The posterior has no closed form. The coefficients (A) and covariance () have a joint distribution that cannot be factored into standard densities. Moreover, the impulse responses—the quantity we care about—are nonlinear functions of (), so their posterior distribution is analytically intractable.</p>
+<p><strong>Gibbs sampling</strong> solves this. At each iteration, I draw (A) from its conditional posterior (multivariate normal, given ()), then draw () from its conditional posterior (inverse-Wishart, given (A)). Repeating this produces draws that converge to the joint posterior. I run 1,000 burn-in iterations, then retain 2,000 draws. For each draw, I compute the impulse response, which gives me the <strong>full posterior distribution</strong> of the response at each horizon—not just a point estimate.</p>
+<p>The lag order is fixed at (p = 6), a standard choice in the monetary SVAR literature for monthly data (e.g., Christiano, Eichenbaum, and Evans, 1999; Bernanke, Boivin, and Eliasz, 2005), capturing half a year of dynamics.</p>
+</section>
+<section id="results-the-transmission-of-a-monetary-tightening" class="level2">
+<h2 class="anchored" data-anchor-id="results-the-transmission-of-a-monetary-tightening">Results: The Transmission of a Monetary Tightening</h2>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="irf_all.png" class="img-fluid figure-img" style="width:90.0%"></p>
+<figcaption>Impulse Responses to Monetary Policy Shock</figcaption>
+</figure>
+</div>
+<p>The figure shows the impulse response matrix. Due to the Cholesky ordering, <strong>the third column represents the contractionary monetary policy shock</strong>. The shock is normalized to a one-standard-deviation increase in the federal funds rate (approximately 30 basis points in this sample).</p>
+<p>Looking at the third column: - <strong>Federal Funds Rate (Row 3):</strong> The rate jumps instantly by about 30 basis points, showing a clear exogenous tightening, before decaying. - <strong>Industrial Production (Row 1):</strong> Initially stable, output falls persistently below zero starting around month 3, reaching a trough at roughly month 6 to 9. This confirms that a monetary tightening has a real, negative effect on economic activity. - <strong>CPI Inflation (Row 2):</strong> By construction of the recursive restriction, the response at horizon 0 is exactly zero. After this initial period, inflation remains near zero for a few months and then drops into negative territory, consistent with sticky-price models where prices adjust slowly. - <strong>10-Year Yield (Row 4):</strong> The long-term yield rises immediately alongside the short rate, confirming the transmission of monetary policy across the yield curve.</p>
+<p>The pink shaded areas represent the 68% Bayesian credible intervals, capturing the estimation uncertainty from the MCMC sampling.</p>
+</section>
+<section id="takeaway" class="level2">
+<h2 class="anchored" data-anchor-id="takeaway">Takeaway</h2>
+<p>Three lessons emerge from this analysis. First, <strong>monetary policy has real effects</strong>, but they are delayed: output falls several months after the shock. Second, <strong>inflation responds with a lag</strong>, which is consistent with sticky prices and slow adjustment. Third, <strong>the Bayesian approach provides uncertainty quantification</strong>: instead of a single impulse response, we get a full posterior distribution, allowing us to see the probabilistic bounds of the policy effect.</p>
+<p>The broader lesson is that <strong>reduced-form VARs cannot identify structural shocks</strong>, and <strong>identification assumptions shape what we can observe</strong>. The recursive scheme imposes a contemporaneous zero on CPI; any analysis that wishes to test for an immediate “price puzzle” response must relax this assumption.</p>
+</section>
+<section id="limitations" class="level2">
+<h2 class="anchored" data-anchor-id="limitations">Limitations</h2>
+<ul>
+<li><strong>Recursive identification is strong</strong>. The assumption that output and inflation do not respond to monetary policy within a month is a simplification. Sign restrictions or external instruments would relax this.</li>
+<li><strong>ZLB period is retained</strong>. The sample includes 2009–2015, when the federal funds rate was near zero; using a shadow rate would provide better identification during that period.</li>
+<li><strong>Linear model</strong>. The SVAR assumes constant coefficients and shock variances, which ignores time-varying monetary policy transmission.</li>
+<li><strong>Lag length</strong>. I fix the lag order at 6, following the literature (e.g., Christiano, Eichenbaum, and Evans, 1999). AIC/BIC-selected lags could be a robustness check.</li>
+</ul>
+<hr>
+<p><em>Data source: <a href="https://fred.stlouisfed.org/">FRED-MD</a>, Federal Reserve Bank of St.&nbsp;Louis. Full code and data are available in the project repository.</em></p>
+</section>
+
+</main>
+<!-- /main column -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const isCodeAnnotation = (el) => {
+    for (const clz of el.classList) {
+      if (clz.startsWith('code-annotation-')) {                     
+        return true;
+      }
+    }
+    return false;
+  }
+  const onCopySuccess = function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    let tooltip;
+    if (window.bootstrap) {
+      button.setAttribute("data-bs-toggle", "tooltip");
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", "Copied!");
+      tooltip = new bootstrap.Tooltip(button, 
+        { trigger: "manual", 
+          customClass: "code-copy-button-tooltip",
+          offset: [0, -8]});
+      tooltip.show();    
+    }
+    setTimeout(function() {
+      if (tooltip) {
+        tooltip.hide();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-toggle");
+        button.removeAttribute("data-bs-placement");
+      }
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  }
+  const getTextToCopy = function(trigger) {
+      const codeEl = trigger.previousElementSibling.cloneNode(true);
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+  }
+  const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+    text: getTextToCopy
+  });
+  clipboard.on('success', onCopySuccess);
+  if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+    // For code content inside modals, clipBoardJS needs to be initialized with a container option
+    // TODO: Check when it could be a function (https://github.com/zenorocha/clipboard.js/issues/860)
+    const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+      text: getTextToCopy,
+      container: window.document.getElementById('quarto-embedded-source-code-modal')
+    });
+    clipboardModal.on('success', onCopySuccess);
+  }
+    var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+    var mailtoRegex = new RegExp(/^mailto:/);
+      var filterRegex = new RegExp('/' + window.location.host + '/');
+    var isInternal = (href) => {
+        return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+    }
+    // Inspect non-navigation links and adorn them if external
+ 	var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+    for (var i=0; i<links.length; i++) {
+      const link = links[i];
+      if (!isInternal(link.href)) {
+        // undo the damage that might have been done by quarto-nav.js in the case of
+        // links that we want to consider external
+        if (link.dataset.originalHref !== undefined) {
+          link.href = link.dataset.originalHref;
+        }
+      }
+    }
+  function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+    const config = {
+      allowHTML: true,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start',
+    };
+    if (contentFn) {
+      config.content = contentFn;
+    }
+    if (onTriggerFn) {
+      config.onTrigger = onTriggerFn;
+    }
+    if (onUntriggerFn) {
+      config.onUntrigger = onUntriggerFn;
+    }
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      if (note) {
+        return note.innerHTML;
+      } else {
+        return "";
+      }
+    });
+  }
+  const xrefs = window.document.querySelectorAll('a.quarto-xref');
+  const processXRef = (id, note) => {
+    // Strip column container classes
+    const stripColumnClz = (el) => {
+      el.classList.remove("page-full", "page-columns");
+      if (el.children) {
+        for (const child of el.children) {
+          stripColumnClz(child);
+        }
+      }
+    }
+    stripColumnClz(note)
+    if (id === null || id.startsWith('sec-')) {
+      // Special case sections, only their first couple elements
+      const container = document.createElement("div");
+      if (note.children && note.children.length > 2) {
+        container.appendChild(note.children[0].cloneNode(true));
+        for (let i = 1; i < note.children.length; i++) {
+          const child = note.children[i];
+          if (child.tagName === "P" && child.innerText === "") {
+            continue;
+          } else {
+            container.appendChild(child.cloneNode(true));
+            break;
+          }
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(container);
+        }
+        return container.innerHTML
+      } else {
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        return note.innerHTML;
+      }
+    } else {
+      // Remove any anchor links if they are present
+      const anchorLink = note.querySelector('a.anchorjs-link');
+      if (anchorLink) {
+        anchorLink.remove();
+      }
+      if (window.Quarto?.typesetMath) {
+        window.Quarto.typesetMath(note);
+      }
+      // TODO in 1.5, we should make sure this works without a callout special case
+      if (note.classList.contains("callout")) {
+        return note.outerHTML;
+      } else {
+        return note.innerHTML;
+      }
+    }
+  }
+  for (var i=0; i<xrefs.length; i++) {
+    const xref = xrefs[i];
+    tippyHover(xref, undefined, function(instance) {
+      instance.disable();
+      let url = xref.getAttribute('href');
+      let hash = undefined; 
+      if (url.startsWith('#')) {
+        hash = url;
+      } else {
+        try { hash = new URL(url).hash; } catch {}
+      }
+      if (hash) {
+        const id = hash.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note !== null) {
+          try {
+            const html = processXRef(id, note.cloneNode(true));
+            instance.setContent(html);
+          } finally {
+            instance.enable();
+            instance.show();
+          }
+        } else {
+          // See if we can fetch this
+          fetch(url.split('#')[0])
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.getElementById(id);
+            if (note !== null) {
+              const html = processXRef(id, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      } else {
+        // See if we can fetch a full url (with no hash to target)
+        // This is a special case and we should probably do some content thinning / targeting
+        fetch(url)
+        .then(res => res.text())
+        .then(html => {
+          const parser = new DOMParser();
+          const htmlDoc = parser.parseFromString(html, "text/html");
+          const note = htmlDoc.querySelector('main.content');
+          if (note !== null) {
+            // This should only happen for chapter cross references
+            // (since there is no id in the URL)
+            // remove the first header
+            if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+              note.children[0].remove();
+            }
+            const html = processXRef(null, note);
+            instance.setContent(html);
+          } 
+        }).finally(() => {
+          instance.enable();
+          instance.show();
+        });
+      }
+    }, function(instance) {
+    });
+  }
+      let selectedAnnoteEl;
+      const selectorForAnnotation = ( cell, annotation) => {
+        let cellAttr = 'data-code-cell="' + cell + '"';
+        let lineAttr = 'data-code-annotation="' +  annotation + '"';
+        const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+        return selector;
+      }
+      const selectCodeLines = (annoteEl) => {
+        const doc = window.document;
+        const targetCell = annoteEl.getAttribute("data-target-cell");
+        const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+        const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+        const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+        const lineIds = lines.map((line) => {
+          return targetCell + "-" + line;
+        })
+        let top = null;
+        let height = null;
+        let parent = null;
+        if (lineIds.length > 0) {
+            //compute the position of the single el (top and bottom and make a div)
+            const el = window.document.getElementById(lineIds[0]);
+            top = el.offsetTop;
+            height = el.offsetHeight;
+            parent = el.parentElement.parentElement;
+          if (lineIds.length > 1) {
+            const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+            const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+            height = bottom - top;
+          }
+          if (top !== null && height !== null && parent !== null) {
+            // cook up a div (if necessary) and position it 
+            let div = window.document.getElementById("code-annotation-line-highlight");
+            if (div === null) {
+              div = window.document.createElement("div");
+              div.setAttribute("id", "code-annotation-line-highlight");
+              div.style.position = 'absolute';
+              parent.appendChild(div);
+            }
+            div.style.top = top - 2 + "px";
+            div.style.height = height + 4 + "px";
+            div.style.left = 0;
+            let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+            if (gutterDiv === null) {
+              gutterDiv = window.document.createElement("div");
+              gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+              gutterDiv.style.position = 'absolute';
+              const codeCell = window.document.getElementById(targetCell);
+              const gutter = codeCell.querySelector('.code-annotation-gutter');
+              gutter.appendChild(gutterDiv);
+            }
+            gutterDiv.style.top = top - 2 + "px";
+            gutterDiv.style.height = height + 4 + "px";
+          }
+          selectedAnnoteEl = annoteEl;
+        }
+      };
+      const unselectCodeLines = () => {
+        const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+        elementsIds.forEach((elId) => {
+          const div = window.document.getElementById(elId);
+          if (div) {
+            div.remove();
+          }
+        });
+        selectedAnnoteEl = undefined;
+      };
+        // Handle positioning of the toggle
+    window.addEventListener(
+      "resize",
+      throttle(() => {
+        elRect = undefined;
+        if (selectedAnnoteEl) {
+          selectCodeLines(selectedAnnoteEl);
+        }
+      }, 10)
+    );
+    function throttle(fn, ms) {
+    let throttle = false;
+    let timer;
+      return (...args) => {
+        if(!throttle) { // first call gets through
+            fn.apply(this, args);
+            throttle = true;
+        } else { // all the others get throttled
+            if(timer) clearTimeout(timer); // cancel #2
+            timer = setTimeout(() => {
+              fn.apply(this, args);
+              timer = throttle = false;
+            }, ms);
+        }
+      };
+    }
+      // Attach click handler to the DT
+      const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+      for (const annoteDlNode of annoteDls) {
+        annoteDlNode.addEventListener('click', (event) => {
+          const clickedEl = event.target;
+          if (clickedEl !== selectedAnnoteEl) {
+            unselectCodeLines();
+            const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+            if (activeEl) {
+              activeEl.classList.remove('code-annotation-active');
+            }
+            selectCodeLines(clickedEl);
+            clickedEl.classList.add('code-annotation-active');
+          } else {
+            // Unselect the line
+            unselectCodeLines();
+            clickedEl.classList.remove('code-annotation-active');
+          }
+        });
+      }
+  const findCites = (el) => {
+    const parentEl = el.parentElement;
+    if (parentEl) {
+      const cites = parentEl.dataset.cites;
+      if (cites) {
+        return {
+          el,
+          cites: cites.split(' ')
+        };
+      } else {
+        return findCites(el.parentElement)
+      }
+    } else {
+      return undefined;
+    }
+  };
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const citeInfo = findCites(ref);
+    if (citeInfo) {
+      tippyHover(citeInfo.el, function() {
+        var popup = window.document.createElement('div');
+        citeInfo.cites.forEach(function(cite) {
+          var citeDiv = window.document.createElement('div');
+          citeDiv.classList.add('hanging-indent');
+          citeDiv.classList.add('csl-entry');
+          var biblioDiv = window.document.getElementById('ref-' + cite);
+          if (biblioDiv) {
+            citeDiv.innerHTML = biblioDiv.innerHTML;
+          }
+          popup.appendChild(citeDiv);
+        });
+        return popup.innerHTML;
+      });
+    }
+  }
+});
+</script>
+</div> <!-- /content -->
+
+
+
+
+</body></html>
